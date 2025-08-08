@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Minesweeper — Fixed Responsive</title>
+<title>Minesweeper - Responsive</title>
 <style>
 :root{
   --bg:#071227; --panel:#0c1622; --text:#e6eef8; --accent:#ffd166; --flag:#ff6b6b;
@@ -26,9 +26,9 @@ html,body{height:100%;margin:0;background:var(--bg);font-family:Inter, Roboto, A
 .title h1{margin:0;font-size:18px}
 .subtitle{font-size:12px;color:rgba(159,184,223,0.9)}
 .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.btn{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.04);padding:8px 10px;border-radius:10px;color:var(--text);font-weight:700;cursor:pointer}
+.btn{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.04);padding:8px 10px;border-radius:10px;color:var(--text);font-weight:700;cursor:pointer;user-select:none}
 .btn.primary{background:linear-gradient(90deg,#1f6feb22,#1f6feb11);border-color:rgba(31,111,235,0.15)}
-.chip{background:rgba(255,255,255,0.03);padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,0.02);font-weight:700}
+.chip{background:rgba(255,255,255,0.03);padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,0.02);font-weight:700;user-select:none}
 
 .board-wrap{display:flex;justify-content:center}
 .board{
@@ -117,7 +117,7 @@ html,body{height:100%;margin:0;background:var(--bg);font-family:Inter, Roboto, A
     </div>
   </div>
 
-  <div class="board-wrap">
+  <div class="board-wrap" style="position:relative;">
     <div id="board" class="board" role="application" aria-label="Minesweeper board"></div>
   </div>
 
@@ -212,7 +212,6 @@ html,body{height:100%;margin:0;background:var(--bg);font-family:Inter, Roboto, A
   }
 
   function newGame(){
-    // reset counters
     grid = Array(rows).fill(null).map(()=>Array(cols).fill(null));
     firstClick = true;
     clearTimer();
@@ -222,7 +221,7 @@ html,body{height:100%;margin:0;background:var(--bg);font-family:Inter, Roboto, A
     updateMinesLeft();
   }
 
-  // Improved addTileListeners function for reliable touch/click
+  // Reliable touch + click event handling
   function addTileListeners(el, r, c) {
     let touchStartTime = 0;
     let longPressTimeout = null;
@@ -279,8 +278,7 @@ html,body{height:100%;margin:0;background:var(--bg);font-family:Inter, Roboto, A
   }
 
   function renderGrid(){
-    // compute cell size so grid fits horizontally with some padding
-    const padding = 40; // left+right margins in px guess
+    const padding = 40; // margins
     const gapTotal = (cols - 1) * 6;
     const maxWidth = Math.min(window.innerWidth, 940) - padding;
     let cellSize = Math.floor((maxWidth - gapTotal - 16) / cols);
@@ -299,25 +297,20 @@ html,body{height:100%;margin:0;background:var(--bg);font-family:Inter, Roboto, A
         boardEl.appendChild(el);
       }
     }
-    // update all tiles to current state
     for(let r=0;r<rows;r++){
       for(let c=0;c<cols;c++){
         updateTile(r,c);
       }
     }
-  }
-
-  function placeMines(avoidR, avoidC){
+  }function placeMines(avoidR, avoidC){
     let placed = 0;
     while(placed < totalMines){
       const r = Math.floor(Math.random()*rows);
       const c = Math.floor(Math.random()*cols);
       if(grid[r][c].mine) continue;
-      // avoid first click and neighbors
       if(Math.abs(r-avoidR) <= 1 && Math.abs(c-avoidC) <= 1) continue;
       grid[r][c].mine = true; placed++;
     }
-    // numbers
     for(let r=0;r<rows;r++){
       for(let c=0;c<cols;c++){
         if(grid[r][c].mine) continue;
@@ -357,4 +350,141 @@ html,body{height:100%;margin:0;background:var(--bg);font-family:Inter, Roboto, A
     inner.className = 'inner' + (cell.num>0 ? ' n'+cell.num : '');
     if(cell.revealed){
       if(cell.mine) inner.textContent = '💣';
-      else if(cell.num>0) inner.textContent = cell
+      else if(cell.num>0) inner.textContent = cell.num;
+      else inner.textContent = '';
+    } else if(cell.flagged){
+      inner.textContent = '🚩';
+    } else {
+      inner.textContent = '';
+    }
+  }
+
+  function toggleFlag(r,c){
+    if(gameOver || grid[r][c].revealed) return;
+    grid[r][c].flagged = !grid[r][c].flagged;
+    flags += grid[r][c].flagged ? 1 : -1;
+    updateTile(r,c);
+    updateMinesLeft();
+    playSound(sFlag);
+  }
+
+  function updateMinesLeft(){
+    minesLeftEl.textContent = `Mines: ${totalMines - flags}`;
+  }
+
+  function startTimer(){
+    if(timer) return;
+    timer = setInterval(()=>{
+      timeSec++;
+      updateTimer();
+    }, 1000);
+  }
+
+  function clearTimer(){
+    clearInterval(timer);
+    timer = null;
+  }
+
+  function updateTimer(){
+    timerEl.textContent = `Time: ${timeSec}s`;
+  }
+
+  function checkWin(){
+    if(gameOver) return;
+    if(revealed + totalMines === rows*cols){
+      gameOver = true;
+      clearTimer();
+      playSound(sWin);
+      updateBest();
+      showOverlay(true);
+    }
+  }
+
+  function loseAt(r,c){
+    gameOver = true;
+    clearTimer();
+    playSound(sBoom);
+    revealAll();
+    const el = boardEl.children[r*cols + c];
+    el.classList.add('mine-hit');
+    showOverlay(false);
+    createExplosion(el);
+  }
+
+  function revealAll(){
+    for(let r=0;r<rows;r++){
+      for(let c=0;c<cols;c++){
+        grid[r][c].revealed = true;
+        updateTile(r,c);
+      }
+    }
+  }
+
+  function showOverlay(win){
+    modalTitle.textContent = win ? "You Win 🎉" : "Game Over 💥";
+    modalText.style.display = "block";
+    modalTime.textContent = timeSec;
+    overlay.style.display = 'flex';
+  }
+
+  function updateBest(){
+    const key = BEST_KEY(currentDiff);
+    const best = localStorage.getItem(key);
+    if(timeSec > 0 && (!best || timeSec < best)) {
+      localStorage.setItem(key, timeSec);
+      bestEl.textContent = `Best: ${timeSec}s`;
+    } else {
+      bestEl.textContent = best ? `Best: ${best}s` : 'Best: —';
+    }
+  }
+
+  function playSound(audio){
+    if(!audio) return;
+    audio.pause();
+    audio.currentTime = 0;
+    audio.play().catch(()=>{});
+  }
+
+  // Explosion animation particles
+  function createExplosion(el){
+    const explosion = document.createElement('div');
+    explosion.className = 'explosion';
+    el.appendChild(explosion);
+    for(let i=0;i<20;i++){
+      const p = document.createElement('div');
+      p.className = 'particle';
+      const angle = Math.random()*2*Math.PI;
+      const dist = 40 + Math.random()*30;
+      p.style.setProperty('--tx', `${Math.cos(angle)*dist}px`);
+      p.style.setProperty('--ty', `${Math.sin(angle)*dist}px`);
+      explosion.appendChild(p);
+    }
+    setTimeout(() => explosion.remove(), 700);
+  }
+
+  function updateFlagUI(){
+    flagToggle.textContent = `Flag Mode: ${flagMode ? 'On' : 'Off'}`;
+  }
+
+  function toggleTheme(){
+    if(document.body.dataset.theme === 'dark'){
+      document.body.dataset.theme = 'light';
+      themeToggle.textContent = 'Dark Mode';
+    } else {
+      document.body.dataset.theme = 'dark';
+      themeToggle.textContent = 'Light Mode';
+    }
+  }
+
+  // Start
+  updateBest();
+  newGame();
+
+  // On resize, rerender grid size for responsiveness
+  window.addEventListener('resize', () => {
+    if(!gameOver) renderGrid();
+  });
+})();
+</script>
+</body>
+</html>
