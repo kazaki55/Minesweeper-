@@ -1,71 +1,286 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><link rel="stylesheet" href="style.css" />
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Minesweeper</title>
-<style>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Minesweeper</title>
+  <style>
     body {
-        font-family: Arial, sans-serif;
-        text-align: center;
-        margin: 0;
-        padding: 0;
-        background: #f4f4f4;
-        transition: background 0.3s, color 0.3s;
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      color: #222;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+      transition: background-color 0.3s, color 0.3s;
     }
     body.dark {
-        background: #222;
-        color: white;
+      background-color: #121212;
+      color: #ddd;
+    }
+    #controls {
+      margin-bottom: 15px;
+    }
+    button {
+      padding: 8px 15px;
+      margin: 0 5px 10px 5px;
+      font-size: 14px;
+      cursor: pointer;
     }
     #game {
-        display: grid;
-        margin: 20px auto;
-        gap: 2px;
+      display: grid;
+      margin: 0 auto;
+      gap: 3px;
+      user-select: none;
+      max-width: 100vw;
+      justify-content: center;
     }
     .tile {
-        width: 30px;
-        height: 30px;
-        background: #ccc;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: bold;
-        cursor: pointer;
-        user-select: none;
-        font-size: 16px;
+      width: 30px;
+      height: 30px;
+      background-color: #ccc;
+      border: 1px solid #999;
+      font-weight: bold;
+      font-size: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.2s ease;
     }
     .tile.revealed {
-        background: #eee;
-        cursor: default;
+      background-color: #eee;
+      cursor: default;
+    }
+    .tile.flagged {
+      background-color: #444;
+      color: #ffeb3b;
     }
     .tile.mine {
-        background: red;
+      background-color: #f44336;
+      color: white;
     }
-    button, select {
-        margin: 5px;
-        padding: 8px;
-        font-size: 14px;
+    #status {
+      margin-top: 10px;
+      font-size: 18px;
+      min-height: 24px;
     }
-</style>
+  </style>
 </head>
 <body>
+  <h1>Minesweeper</h1>
 
-<h1>Minesweeper</h1>
-<div>
-    <select id="difficulty">
-        <option value="easy">Easy</option>
-        <option value="normal">Normal</option>
-        <option value="hard">Hard</option>
-    </select>
+  <div id="controls">
+    <button id="easyBtn">Easy</button>
+    <button id="normalBtn">Normal</button>
+    <button id="hardBtn">Hard</button>
     <button id="restartBtn">Restart</button>
-    <button id="themeBtn">Toggle Dark/Light</button>
-</div>
-<div id="game"></div>
+    <button id="toggleThemeBtn">Toggle Dark/Light</button>
+  </div>
 
-<audio id="clickSound" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg"></audio>
-<audio id="explosionSound" src="https://actions.google.com/sounds/v1/explosions/explosion.ogg"></audio>
-<audio id="flagSound" src="https://actions.google.com/sounds/v1/cartoon/pop.ogg"></audio>
+  <div id="game"></div>
+  <div id="status"></div>
 
-<script src="script.js"></script>
+  <!-- JavaScript will go here in Part 2 --><script>
+(() => {
+  // Difficulty settings
+  const difficulties = {
+    easy: { rows: 8, cols: 8, mines: 10 },
+    normal: { rows: 12, cols: 12, mines: 20 },
+    hard: { rows: 16, cols: 16, mines: 40 },
+  };
+
+  let rows, cols, minesCount;
+  let board = [];
+  let revealedCount = 0;
+  let flagsPlaced = 0;
+  let gameOver = false;
+  let currentDifficulty = 'easy';
+
+  const gameEl = document.getElementById('game');
+  const statusEl = document.getElementById('status');
+  const easyBtn = document.getElementById('easyBtn');
+  const normalBtn = document.getElementById('normalBtn');
+  const hardBtn = document.getElementById('hardBtn');
+  const restartBtn = document.getElementById('restartBtn');
+  const toggleThemeBtn = document.getElementById('toggleThemeBtn');
+
+  function startGame(difficulty) {
+    currentDifficulty = difficulty || currentDifficulty;
+    const d = difficulties[currentDifficulty];
+    rows = d.rows;
+    cols = d.cols;
+    minesCount = d.mines;
+
+    revealedCount = 0;
+    flagsPlaced = 0;
+    gameOver = false;
+    statusEl.textContent = '';
+
+    board = [];
+
+    // Set grid style
+    gameEl.style.gridTemplateRows = `repeat(${rows}, 30px)`;
+    gameEl.style.gridTemplateColumns = `repeat(${cols}, 30px)`;
+
+    // Clear board
+    gameEl.innerHTML = '';
+
+    // Create tiles and board data
+    for (let r = 0; r < rows; r++) {
+      const row = [];
+      for (let c = 0; c < cols; c++) {
+        const tileEl = document.createElement('div');
+        tileEl.classList.add('tile');
+        tileEl.dataset.row = r;
+        tileEl.dataset.col = c;
+
+        tileEl.addEventListener('click', () => {
+          if (gameOver) return;
+          revealTile(r, c);
+        });
+
+        tileEl.addEventListener('contextmenu', e => {
+          e.preventDefault();
+          if (gameOver) return;
+          toggleFlag(r, c);
+        });
+
+        gameEl.appendChild(tileEl);
+
+        row.push({
+          mine: false,
+          revealed: false,
+          flagged: false,
+          number: 0,
+          element: tileEl,
+        });
+      }
+      board.push(row);
+    }
+
+    placeMines();
+    calculateNumbers();
+  }
+
+  function placeMines() {
+    let placed = 0;
+    while (placed < minesCount) {
+      const r = Math.floor(Math.random() * rows);
+      const c = Math.floor(Math.random() * cols);
+      if (!board[r][c].mine) {
+        board[r][c].mine = true;
+        placed++;
+      }
+    }
+  }
+
+  function calculateNumbers() {
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        if (board[r][c].mine) continue;
+        let count = 0;
+        for (let dr = -1; dr <= 1; dr++) {
+          for (let dc = -1; dc <= 1; dc++) {
+            const nr = r + dr;
+            const nc = c + dc;
+            if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+              if (board[nr][nc].mine) count++;
+            }
+          }
+        }
+        board[r][c].number = count;
+      }
+    }
+  }
+
+  function revealTile(r, c) {
+    const tile = board[r][c];
+    if (tile.revealed || tile.flagged) return;
+
+    tile.revealed = true;
+    revealedCount++;
+    tile.element.classList.add('revealed');
+
+    if (tile.mine) {
+      tile.element.textContent = '💥';
+      gameOver = true;
+      statusEl.textContent = '💣 Game Over!';
+      revealAllMines();
+      return;
+    }
+
+    if (tile.number > 0) {
+      tile.element.textContent = tile.number;
+    } else {
+      tile.element.textContent = '';
+      // Reveal neighbors recursively
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          const nr = r + dr;
+          const nc = c + dc;
+          if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+            revealTile(nr, nc);
+          }
+        }
+      }
+    }
+    checkWin();
+  }
+
+  function toggleFlag(r, c) {
+    const tile = board[r][c];
+    if (tile.revealed) return;
+
+    if (tile.flagged) {
+      tile.flagged = false;
+      flagsPlaced--;
+      tile.element.textContent = '';
+      tile.element.classList.remove('flagged');
+    } else {
+      if (flagsPlaced >= minesCount) return; // No more flags than mines
+      tile.flagged = true;
+      flagsPlaced++;
+      tile.element.textContent = '🇦🇫'; // Flag emoji
+      tile.element.classList.add('flagged');
+    }
+  }
+
+  function revealAllMines() {
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const tile = board[r][c];
+        if (tile.mine) {
+          tile.element.textContent = '💣';
+          tile.element.classList.add('mine');
+        }
+      }
+    }
+  }
+
+  function checkWin() {
+    if (revealedCount === rows * cols - minesCount) {
+      gameOver = true;
+      statusEl.textContent = '🎉 You Win!';
+      revealAllMines();
+    }
+  }
+
+  function toggleTheme() {
+    document.body.classList.toggle('dark');
+  }
+
+  // Button listeners
+  easyBtn.addEventListener('click', () => startGame('easy'));
+  normalBtn.addEventListener('click', () => startGame('normal'));
+  hardBtn.addEventListener('click', () => startGame('hard'));
+  restartBtn.addEventListener('click', () => startGame(currentDifficulty));
+  toggleThemeBtn.addEventListener('click', toggleTheme);
+
+  // Start default game
+  startGame('easy');
+})();
+</script>
 </body>
 </html>
