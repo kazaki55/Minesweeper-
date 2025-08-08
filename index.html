@@ -106,231 +106,260 @@
   <div id="game"></div>
   <div id="status"></div>
 
-  <script>
-    (() => {
-      const difficulties = {
-        easy: { rows: 8, cols: 8, mines: 10 },
-        normal: { rows: 12, cols: 12, mines: 20 },
-        hard: { rows: 16, cols: 16, mines: 40 },
-      };
+<script>
+(() => {
+  const difficulties = {
+    easy: { rows: 8, cols: 8, mines: 10 },
+    normal: { rows: 12, cols: 12, mines: 20 },
+    hard: { rows: 16, cols: 16, mines: 40 },
+  };
 
-      let rows, cols, minesCount;
-      let board = [];
-      let revealedCount = 0;
-      let flagsPlaced = 0;
-      let gameOver = false;
-      let currentDifficulty = 'easy';
+  let rows, cols, minesCount;
+  let board = [];
+  let revealedCount = 0;
+  let flagsPlaced = 0;
+  let gameOver = false;
+  let currentDifficulty = 'easy';
 
-      const gameEl = document.getElementById('game');
-      const statusEl = document.getElementById('status');
-      const easyBtn = document.getElementById('easyBtn');
-      const normalBtn = document.getElementById('normalBtn');
-      const hardBtn = document.getElementById('hardBtn');
-      const restartBtn = document.getElementById('restartBtn');
-      const toggleThemeBtn = document.getElementById('toggleThemeBtn');
+  const gameEl = document.getElementById('game');
+  const statusEl = document.getElementById('status');
+  const easyBtn = document.getElementById('easyBtn');
+  const normalBtn = document.getElementById('normalBtn');
+  const hardBtn = document.getElementById('hardBtn');
+  const restartBtn = document.getElementById('restartBtn');
+  const toggleThemeBtn = document.getElementById('toggleThemeBtn');
 
-      const sounds = {
-        click: new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQcAAAAA"),
-        flag: new Audio("data:audio/wav;base64,UklGRhQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQoAAAAA"),
-        explosion: new Audio("data:audio/wav;base64,UklGRqIAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YaAAA"),
-        win: new Audio("data:audio/wav;base64,UklGRoQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YYAAA"),
-      };
+  // Web Audio API for sounds
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  const audioCtx = new AudioCtx();
 
-      function playSound(name) {
-        if (!sounds[name]) return;
-        sounds[name].currentTime = 0;
-        sounds[name].play();
+  function playTone(freq, duration = 150, type = 'sine', volume = 0.2) {
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+
+    oscillator.type = type;
+    oscillator.frequency.value = freq;
+    gainNode.gain.value = volume;
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+
+    oscillator.start();
+
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration / 1000);
+
+    oscillator.stop(audioCtx.currentTime + duration / 1000);
+  }
+
+  function playClick() {
+    playTone(600, 100, 'triangle');
+  }
+
+  function playFlag() {
+    playTone(300, 200, 'square');
+  }
+
+  function playExplosion() {
+    playTone(100, 400, 'sawtooth', 0.3);
+  }
+
+  function playWin() {
+    // Simple melody: 4 rising notes
+    const notes = [400, 500, 600, 700];
+    let delay = 0;
+    notes.forEach(freq => {
+      setTimeout(() => playTone(freq, 150, 'triangle', 0.3), delay);
+      delay += 180;
+    });
+  }
+
+  function startGame(difficulty) {
+    currentDifficulty = difficulty || currentDifficulty;
+    const d = difficulties[currentDifficulty];
+    rows = d.rows;
+    cols = d.cols;
+    minesCount = d.mines;
+
+    revealedCount = 0;
+    flagsPlaced = 0;
+    gameOver = false;
+    statusEl.textContent = '';
+
+    board = [];
+
+    gameEl.style.gridTemplateRows = `repeat(${rows}, 32px)`;
+    gameEl.style.gridTemplateColumns = `repeat(${cols}, 32px)`;
+    gameEl.innerHTML = '';
+
+    for (let r = 0; r < rows; r++) {
+      const row = [];
+      for (let c = 0; c < cols; c++) {
+        const tileEl = document.createElement('div');
+        tileEl.classList.add('tile');
+        tileEl.dataset.row = r;
+        tileEl.dataset.col = c;
+
+        tileEl.addEventListener('click', () => {
+          if (gameOver) return;
+          revealTile(r, c);
+        });
+
+        tileEl.addEventListener('contextmenu', e => {
+          e.preventDefault();
+          if (gameOver) return;
+          toggleFlag(r, c);
+        });
+
+        gameEl.appendChild(tileEl);
+
+        row.push({
+          mine: false,
+          revealed: false,
+          flagged: false,
+          number: 0,
+          element: tileEl,
+        });
       }
+      board.push(row);
+    }
 
-      function startGame(difficulty) {
-        currentDifficulty = difficulty || currentDifficulty;
-        const d = difficulties[currentDifficulty];
-        rows = d.rows;
-        cols = d.cols;
-        minesCount = d.mines;
+    placeMines();
+    calculateNumbers();
+  }
 
-        revealedCount = 0;
-        flagsPlaced = 0;
-        gameOver = false;
-        statusEl.textContent = '';
-
-        board = [];
-
-        gameEl.style.gridTemplateRows = `repeat(${rows}, 32px)`;
-        gameEl.style.gridTemplateColumns = `repeat(${cols}, 32px)`;
-        gameEl.innerHTML = '';
-
-        for (let r = 0; r < rows; r++) {
-          const row = [];
-          for (let c = 0; c < cols; c++) {
-            const tileEl = document.createElement('div');
-            tileEl.classList.add('tile');
-            tileEl.dataset.row = r;
-            tileEl.dataset.col = c;
-
-            tileEl.addEventListener('click', () => {
-              if (gameOver) return;
-              revealTile(r, c);
-            });
-
-            tileEl.addEventListener('contextmenu', e => {
-              e.preventDefault();
-              if (gameOver) return;
-              toggleFlag(r, c);
-            });
-
-            gameEl.appendChild(tileEl);
-
-            row.push({
-              mine: false,
-              revealed: false,
-              flagged: false,
-              number: 0,
-              element: tileEl,
-            });
-          }
-          board.push(row);
-        }
-
-        placeMines();
-        calculateNumbers();
+  function placeMines() {
+    let placed = 0;
+    while (placed < minesCount) {
+      const r = Math.floor(Math.random() * rows);
+      const c = Math.floor(Math.random() * cols);
+      if (!board[r][c].mine) {
+        board[r][c].mine = true;
+        placed++;
       }
+    }
+  }
 
-      function placeMines() {
-        let placed = 0;
-        while (placed < minesCount) {
-          const r = Math.floor(Math.random() * rows);
-          const c = Math.floor(Math.random() * cols);
-          if (!board[r][c].mine) {
-            board[r][c].mine = true;
-            placed++;
-          }
-        }
-      }
-
-      function calculateNumbers() {
-        for (let r = 0; r < rows; r++) {
-          for (let c = 0; c < cols; c++) {
-            if (board[r][c].mine) continue;
-            let count = 0;
-            for (let dr = -1; dr <= 1; dr++) {
-              for (let dc = -1; dc <= 1; dc++) {
-                const nr = r + dr;
-                const nc = c + dc;
-                if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
-                  if (board[nr][nc].mine) count++;
-                }
-              }
+  function calculateNumbers() {
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        if (board[r][c].mine) continue;
+        let count = 0;
+        for (let dr = -1; dr <= 1; dr++) {
+          for (let dc = -1; dc <= 1; dc++) {
+            const nr = r + dr;
+            const nc = c + dc;
+            if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+              if (board[nr][nc].mine) count++;
             }
-            board[r][c].number = count;
+          }
+        }
+        board[r][c].number = count;
+      }
+    }
+  }
+
+  function revealTile(r, c) {
+    const tile = board[r][c];
+    if (tile.revealed || tile.flagged) return;
+
+    tile.revealed = true;
+    revealedCount++;
+    tile.element.classList.add('revealed');
+    playClick();
+
+    if (tile.mine) {
+      tile.element.textContent = '💥';
+      tile.element.classList.add('mine');
+      gameOver = true;
+      statusEl.textContent = '💣 Game Over!';
+      playExplosion();
+      revealAllMines();
+      return;
+    }
+
+    if (tile.number > 0) {
+      tile.element.textContent = tile.number;
+      tile.element.style.color = getNumberColor(tile.number);
+    } else {
+      tile.element.textContent = '';
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          const nr = r + dr;
+          const nc = c + dc;
+          if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+            revealTile(nr, nc);
           }
         }
       }
+    }
+    checkWin();
+  }
 
-      function revealTile(r, c) {
+  function toggleFlag(r, c) {
+    const tile = board[r][c];
+    if (tile.revealed) return;
+
+    if (tile.flagged) {
+      tile.flagged = false;
+      flagsPlaced--;
+      tile.element.textContent = '';
+      tile.element.classList.remove('flagged');
+      playFlag();
+    } else {
+      if (flagsPlaced >= minesCount) return;
+      tile.flagged = true;
+      flagsPlaced++;
+      tile.element.textContent = '🇦🇫';
+      tile.element.classList.add('flagged');
+      playFlag();
+    }
+  }
+
+  function revealAllMines() {
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
         const tile = board[r][c];
-        if (tile.revealed || tile.flagged) return;
-
-        tile.revealed = true;
-        revealedCount++;
-        tile.element.classList.add('revealed');
-        playSound('click');
-
-        if (tile.mine) {
-          tile.element.textContent = '💥';
+        if (tile.mine && !tile.revealed) {
+          tile.element.textContent = '💣';
           tile.element.classList.add('mine');
-          gameOver = true;
-          statusEl.textContent = '💣 Game Over!';
-          playSound('explosion');
-          revealAllMines();
-          return;
-        }
-
-        if (tile.number > 0) {
-          tile.element.textContent = tile.number;
-          tile.element.style.color = getNumberColor(tile.number);
-        } else {
-          tile.element.textContent = '';
-          for (let dr = -1; dr <= 1; dr++) {
-            for (let dc = -1; dc <= 1; dc++) {
-              const nr = r + dr;
-              const nc = c + dc;
-              if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
-                revealTile(nr, nc);
-              }
-            }
-          }
-        }
-        checkWin();
-      }
-
-      function toggleFlag(r, c) {
-        const tile = board[r][c];
-        if (tile.revealed) return;
-
-        if (tile.flagged) {
-          tile.flagged = false;
-          flagsPlaced--;
-          tile.element.textContent = '';
-          tile.element.classList.remove('flagged');
-          playSound('flag');
-        } else {
-          if (flagsPlaced >= minesCount) return;
-          tile.flagged = true;
-          flagsPlaced++;
-          tile.element.textContent = '🇦🇫';
-          tile.element.classList.add('flagged');
-          playSound('flag');
         }
       }
+    }
+  }
 
-      function revealAllMines() {
-        for (let r = 0; r < rows; r++) {
-          for (let c = 0; c < cols; c++) {
-            const tile = board[r][c];
-            if (tile.mine && !tile.revealed) {
-              tile.element.textContent = '💣';
-              tile.element.classList.add('mine');
-            }
-          }
-        }
-      }
+  function checkWin() {
+    if (revealedCount === rows * cols - minesCount) {
+      gameOver = true;
+      statusEl.textContent = '🎉 You Win!';
+      playWin();
+      revealAllMines();
+    }
+  }
 
-      function checkWin() {
-        if (revealedCount === rows * cols - minesCount) {
-          gameOver = true;
-          statusEl.textContent = '🎉 You Win!';
-          playSound('win');
-          revealAllMines();
-        }
-      }
+  function getNumberColor(number) {
+    const colors = {
+      1: '#1976d2',
+      2: '#388e3c',
+      3: '#d32f2f',
+      4: '#7b1fa2',
+      5: '#f57c00',
+      6: '#00796b',
+      7: '#c2185b',
+      8: '#455a64',
+    };
+    return colors[number] || '#000';
+  }
 
-      function getNumberColor(number) {
-        const colors = {
-          1: '#1976d2',
-          2: '#388e3c',
-          3: '#d32f2f',
-          4: '#7b1fa2',
-          5: '#f57c00',
-          6: '#00796b',
-          7: '#c2185b',
-          8: '#455a64',
-        };
-        return colors[number] || '#000';
-      }
+  function toggleTheme() {
+    document.body.classList.toggle('dark');
+  }
 
-      function toggleTheme() {
-        document.body.classList.toggle('dark');
-      }
+  easyBtn.addEventListener('click', () => startGame('easy'));
+  normalBtn.addEventListener('click', () => startGame('normal'));
+  hardBtn.addEventListener('click', () => startGame('hard'));
+  restartBtn.addEventListener('click', () => startGame(currentDifficulty));
+  toggleThemeBtn.addEventListener('click', toggleTheme);
 
-      easyBtn.addEventListener('click', () => startGame('easy'));
-      normalBtn.addEventListener('click', () => startGame('normal'));
-      hardBtn.addEventListener('click', () => startGame('hard'));
-      restartBtn.addEventListener('click', () => startGame(currentDifficulty));
-      toggleThemeBtn.addEventListener('click', toggleTheme);
-
-      startGame('easy');
-    })();
+  startGame('easy');
+})();
   </script>
-</body>
-</html>
