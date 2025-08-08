@@ -3,20 +3,28 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Minesweeper — Responsive</title>
+<title>Minesweeper — Fixed Responsive</title>
 <style>
 :root{
   --bg:#071227; --panel:#0c1622; --text:#e6eef8; --accent:#ffd166; --flag:#ff6b6b;
   --tile-dark:#0f2430; --tile-light:#e9f1fb;
-  --bg-light:#f5f5f5; --panel-light:#ffffff; --text-light:#111111; --accent-light:#ff6b6b;
+}
+[data-theme="light"]{
+  --bg: #f6f8fb;
+  --panel: #ffffff;
+  --text: #0b1220;
+  --accent: #ff8c42;
+  --flag: #d33a3a;
+  --tile-dark: #c6d4e0;
+  --tile-light: #ffffff;
 }
 *{box-sizing:border-box}
-html,body{height:100%;margin:0;background:linear-gradient(180deg,#04102a,#071227);font-family:Inter, Roboto, Arial, sans-serif;color:var(--text);-webkit-font-smoothing:antialiased}
-.app{max-width:1000px;margin:10px auto;padding:12px;display:flex;flex-direction:column;gap:12px}
-.header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+html,body{height:100%;margin:0;background:var(--bg);font-family:Inter, Roboto, Arial, sans-serif;color:var(--text);-webkit-font-smoothing:antialiased}
+.app{max-width:980px;margin:10px auto;padding:12px;display:flex;flex-direction:column;gap:12px}
+.header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
 .title{display:flex;flex-direction:column}
 .title h1{margin:0;font-size:18px}
-.subtitle{font-size:12px;color:#9fb8df}
+.subtitle{font-size:12px;color:rgba(159,184,223,0.9)}
 .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .btn{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.04);padding:8px 10px;border-radius:10px;color:var(--text);font-weight:700;cursor:pointer}
 .btn.primary{background:linear-gradient(90deg,#1f6feb22,#1f6feb11);border-color:rgba(31,111,235,0.15)}
@@ -35,7 +43,7 @@ html,body{height:100%;margin:0;background:linear-gradient(180deg,#04102a,#071227
 
 /* tile */
 .tile{
-  width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+  width:44px;height:44px;border-radius:8px;display:flex;align-items:center;justify-content:center;
   background:linear-gradient(180deg,var(--tile-dark),#07102a);color:transparent;font-weight:800;font-size:18px;
   user-select:none;cursor:pointer;position:relative;transition: transform .12s ease, box-shadow .12s ease, background .12s;
   box-shadow: 0 3px 0 rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.02);
@@ -57,8 +65,8 @@ html,body{height:100%;margin:0;background:linear-gradient(180deg,#04102a,#071227
 .n8{color:#6b7280}
 
 /* responsive tile sizing */
-@media (max-width:420px){ .tile{width:36px;height:36px;font-size:18px;border-radius:6px} }
-@media (min-width:800px){ .tile{width:46px;height:46px;font-size:20px;border-radius:10px} }
+@media (max-width:420px){ .tile{width:36px;height:36px;font-size:16px;border-radius:6px} }
+@media (min-width:900px){ .tile{width:48px;height:48px;font-size:20px;border-radius:10px} }
 
 /* inner flip animation */
 .inner{transform:rotateX(90deg);transform-origin:top;transition:transform .18s ease, opacity .18s;opacity:0;display:flex;align-items:center;justify-content:center;width:100%;height:100%}
@@ -66,7 +74,7 @@ html,body{height:100%;margin:0;background:linear-gradient(180deg,#04102a,#071227
 
 /* overlay modal */
 .overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:linear-gradient(180deg, rgba(2,6,23,0.6), rgba(2,6,23,0.5));z-index:60}
-.modal{background:linear-gradient(180deg,#071427,#051126);padding:18px;border-radius:12px;border:1px solid rgba(255,255,255,0.03);min-width:240px;text-align:center}
+.modal{background:var(--panel);padding:18px;border-radius:12px;border:1px solid rgba(255,255,255,0.03);min-width:240px;text-align:center}
 .modal h2{margin:6px 0 0}
 .modal p{margin:8px 0 12px;color:#9fb8df}
 
@@ -84,7 +92,7 @@ html,body{height:100%;margin:0;background:linear-gradient(180deg,#04102a,#071227
 .footer{font-size:12px;color:#9fb8df;text-align:center;padding:6px 0}
 </style>
 </head>
-<body>
+<body data-theme="dark">
 <div class="app">
   <div class="header">
     <div class="title">
@@ -93,18 +101,18 @@ html,body{height:100%;margin:0;background:linear-gradient(180deg,#04102a,#071227
     </div>
 
     <div class="controls">
-      <div style="display:flex;gap:6px;align-items:center">
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
         <button id="restartBtn" class="btn">Restart</button>
         <button data-diff="easy" class="btn primary">Easy</button>
         <button data-diff="normal" class="btn">Normal</button>
         <button data-diff="hard" class="btn">Hard</button>
       </div>
-      <div style="display:flex;gap:8px;align-items:center;margin-left:8px">
+      <div style="display:flex;gap:8px;align-items:center;margin-left:8px;flex-wrap:wrap">
         <div id="minesLeft" class="chip">Mines: 0</div>
         <div id="timer" class="chip">Time: 0s</div>
         <div id="best" class="chip">Best: —</div>
         <button id="flagToggle" class="btn">Flag Mode: Off</button>
-        <button id="themeToggle" class="btn">Dark Mode</button>
+        <button id="themeToggle" class="btn">Light Mode</button>
       </div>
     </div>
   </div>
@@ -141,6 +149,7 @@ html,body{height:100%;margin:0;background:linear-gradient(180deg,#04102a,#071227
     hard:   {rows:16, cols:30, mines:99}
   };
 
+  // DOM
   const boardEl = document.getElementById('board');
   const minesLeftEl = document.getElementById('minesLeft');
   const timerEl = document.getElementById('timer');
@@ -151,14 +160,17 @@ html,body{height:100%;margin:0;background:linear-gradient(180deg,#04102a,#071227
   const modalTime = document.getElementById('modalTime');
   const modalRestart = document.getElementById('modalRestart');
   const modalClose = document.getElementById('modalClose');
+
   const sClick = document.getElementById('sClick');
   const sFlag  = document.getElementById('sFlag');
   const sBoom  = document.getElementById('sBoom');
   const sWin   = document.getElementById('sWin');
+
   const restartBtn = document.getElementById('restartBtn');
   const flagToggle = document.getElementById('flagToggle');
   const themeToggle = document.getElementById('themeToggle');
 
+  // state
   let currentDiff = 'easy';
   let rows = DIFFS[currentDiff].rows;
   let cols = DIFFS[currentDiff].cols;
@@ -176,6 +188,21 @@ html,body{height:100%;margin:0;background:linear-gradient(180deg,#04102a,#071227
 
   const BEST_KEY = d => `ms_best_${d}`;
 
+  // set difficulty buttons
+  document.querySelectorAll('[data-diff]').forEach(btn=>{
+    btn.addEventListener('click', ()=> setDifficulty(btn.dataset.diff));
+    if(btn.dataset.diff === currentDiff) btn.classList.add('primary');
+  });
+
+  restartBtn.addEventListener('click', ()=> newGame());
+  flagToggle.addEventListener('click', ()=> { flagMode = !flagMode; updateFlagUI(); });
+  themeToggle.addEventListener('click', toggleTheme);
+  modalRestart.addEventListener('click', ()=> { overlay.style.display='none'; newGame(); });
+  modalClose.addEventListener('click', ()=> { overlay.style.display='none'; });
+  overlay.addEventListener('click', (e) => { if(e.target === overlay) overlay.style.display='none'; });
+
+  window.addEventListener('keydown', (e)=>{ if(e.code === 'Space'){ flagMode = !flagMode; updateFlagUI(); e.preventDefault(); } });
+
   function setDifficulty(d){
     currentDiff = d;
     rows = DIFFS[d].rows; cols = DIFFS[d].cols; totalMines = DIFFS[d].mines;
@@ -186,20 +213,25 @@ html,body{height:100%;margin:0;background:linear-gradient(180deg,#04102a,#071227
   }
 
   function newGame(){
+    // reset counters
     grid = Array(rows).fill(null).map(()=>Array(cols).fill(null));
-    firstClick = true; clearInterval(timer); timer=null; timeSec=0; updateTimer();
-    flags = 0; revealed = 0; gameOver=false; flagMode=false; updateFlagUI();
+    firstClick = true;
+    clearTimer();
+    timeSec = 0; updateTimer();
+    flags = 0; revealed = 0; gameOver = false; flagMode = false; updateFlagUI();
     renderGrid();
     updateMinesLeft();
   }
 
   function renderGrid(){
-    const maxW = Math.min(window.innerWidth, 940) - 40; 
-    let cellSize = Math.floor((maxW - (cols-1)*6 - 16) / cols);
-    cellSize = Math.max(24, Math.min(56, cellSize)); 
-
+    // compute cell size so grid fits horizontally with some padding
+    const padding = 40; // left+right margins in px guess
+    const gapTotal = (cols - 1) * 6;
+    const maxWidth = Math.min(window.innerWidth, 940) - padding;
+    let cellSize = Math.floor((maxWidth - gapTotal - 16) / cols);
+    cellSize = Math.max(20, Math.min(56, cellSize)); // clamp
     boardEl.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
-    boardEl.style.width = `auto`;
+    boardEl.style.width = 'auto';
     boardEl.innerHTML = '';
     for(let r=0;r<rows;r++){
       for(let c=0;c<cols;c++){
@@ -208,10 +240,11 @@ html,body{height:100%;margin:0;background:linear-gradient(180deg,#04102a,#071227
         el.className = 'tile';
         el.dataset.r = r; el.dataset.c = c;
         el.innerHTML = `<div class="inner"></div>`;
+        // events
         el.addEventListener('click', onTileClick);
-        el.addEventListener('contextmenu', e=>{ e.preventDefault(); toggleFlag(r,c); });
+        el.addEventListener('contextmenu', (ev)=>{ ev.preventDefault(); toggleFlag(r,c); });
         el.addEventListener('touchstart', (ev)=>{ ev.preventDefault(); longPressTimer = setTimeout(()=>{ toggleFlag(r,c); longPressTimer = null; }, LONG_PRESS_MS); }, {passive:false});
-        el.addEventListener('touchend', ()=>{ if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer=null; }});
+        el.addEventListener('touchend', ()=>{ if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer = null; }});
         boardEl.appendChild(el);
       }
     }
@@ -219,11 +252,12 @@ html,body{height:100%;margin:0;background:linear-gradient(180deg,#04102a,#071227
 
   function onTileClick(e){
     if(gameOver) return;
-    const r = +this.dataset.r, c = +this.dataset.c;
+    const el = e.currentTarget;
+    const r = +el.dataset.r, c = +el.dataset.c;
     if(flagMode){ toggleFlag(r,c); return; }
-    if(firstClick){ placeMines(r,c); firstClick=false; startTimer(); }
+    if(firstClick){ placeMines(r,c); firstClick = false; startTimer(); }
     reveal(r,c);
-    sClick.currentTime = 0; sClick.play().catch(()=>{});
+    playSound(sClick);
   }
 
   function placeMines(avoidR, avoidC){
@@ -231,11 +265,12 @@ html,body{height:100%;margin:0;background:linear-gradient(180deg,#04102a,#071227
     while(placed < totalMines){
       const r = Math.floor(Math.random()*rows);
       const c = Math.floor(Math.random()*cols);
-      const cell = grid[r][c];
-      if(cell.mine) continue;
-      if(Math.abs(r-avoidR)<=1 && Math.abs(c-avoidC)<=1) continue;
-      cell.mine = true; placed++;
+      if(grid[r][c].mine) continue;
+      // avoid first click and neighbors
+      if(Math.abs(r-avoidR) <= 1 && Math.abs(c-avoidC) <= 1) continue;
+      grid[r][c].mine = true; placed++;
     }
+    // numbers
     for(let r=0;r<rows;r++){
       for(let c=0;c<cols;c++){
         if(grid[r][c].mine) continue;
@@ -243,7 +278,7 @@ html,body{height:100%;margin:0;background:linear-gradient(180deg,#04102a,#071227
         for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){
           if(dr===0 && dc===0) continue;
           const rr=r+dr, cc=c+dc;
-          if(rr>=0&&rr<rows&&cc>=0&&cc<cols && grid[rr][cc].mine) n++;
+          if(rr>=0 && rr<rows && cc>=0 && cc<cols && grid[rr][cc].mine) n++;
         }
         grid[r][c].num = n;
       }
@@ -252,25 +287,21 @@ html,body{height:100%;margin:0;background:linear-gradient(180deg,#04102a,#071227
 
   function reveal(r,c){
     const cell = grid[r][c];
-    if(cell.revealed || cell.flagged) return;
+    if(!cell || cell.revealed || cell.flagged) return;
     cell.revealed = true; revealed++;
-    updateTile(elFor(r,c));
-    if(cell.mine){
-      loseAt(r,c); return;
-    }
+    updateTile(r,c);
+    if(cell.mine){ loseAt(r,c); return; }
     if(cell.num === 0){
       for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){
         const rr=r+dr, cc=c+dc;
-        if(rr>=0&&rr<rows&&cc>=0&&cc<cols && !grid[rr][cc].revealed) reveal(rr,cc);
+        if(rr>=0 && rr<rows && cc>=0 && cc<cols && !grid[rr][cc].revealed) reveal(rr,cc);
       }
     }
     checkWin();
   }
 
-  function elFor(r,c){ return boardEl.children[r*cols + c]; }
-
-  function updateTile(el){
-    const r = +el.dataset.r, c = +el.dataset.c;
+  function updateTile(r,c){
+    const el = boardEl.children[r*cols + c];
     const cell = grid[r][c];
     el.classList.toggle('revealed', cell.revealed);
     el.classList.toggle('flagged', cell.flagged);
@@ -289,15 +320,16 @@ html,body{height:100%;margin:0;background:linear-gradient(180deg,#04102a,#071227
   function toggleFlag(r,c){
     if(gameOver) return;
     const cell = grid[r][c];
-    if(cell.revealed) return;
+    if(!cell || cell.revealed) return;
     cell.flagged = !cell.flagged;
     flags += cell.flagged ? 1 : -1;
-    updateTile(elFor(r,c));
-    sFlag.currentTime = 0; sFlag.play().catch(()=>{});
+    updateTile(r,c);
+    playSound(sFlag);
     updateMinesLeft();
-    if(flags === totalMines) {
+    if(flags === totalMines){
+      // quick correctness check
       let allCorrect = true;
-      for(let rr=0;rr<rows;rr++) for(let cc=0;cc<cols;cc++){
+      for(let rr=0; rr<rows; rr++) for(let cc=0; cc<cols; cc++){
         if(grid[rr][cc].flagged && !grid[rr][cc].mine) allCorrect = false;
       }
       if(allCorrect) win();
@@ -306,24 +338,149 @@ html,body{height:100%;margin:0;background:linear-gradient(180deg,#04102a,#071227
 
   function updateMinesLeft(){ minesLeftEl.textContent = `Mines: ${totalMines - flags}`; }
 
+  // Timer
   function startTimer(){
     if(timer) return;
     timer = setInterval(()=>{ timeSec++; timerEl.textContent = `Time: ${timeSec}s`; }, 1000);
   }
-
+  function clearTimer(){ if(timer){ clearInterval(timer); timer = null; } timeSec = 0; timerEl.textContent = `Time: 0s`; }
   function updateTimer(){ timerEl.textContent = `Time: ${timeSec}s`; }
 
   function checkWin(){
-    const totalCells = rows*cols;
-    if(revealed === totalCells - totalMines){
-      win();
-    }
+    const totalCells = rows * cols;
+    if(revealed === totalCells - totalMines) win();
   }
 
   function loseAt(r,c){
     gameOver = true;
-    clearInterval(timer); timer=null;
-    for(let rr=0;rr<rows;rr++) for(let cc=0;cc<cols;cc++){
-      if(grid[rr][cc].mine){ grid[rr][cc].revealed = true; updateTile(elFor(rr,cc)); }
+    clearTimer();
+    // reveal all mines
+    for(let rr=0; rr<rows; rr++){
+      for(let cc=0; cc<cols; cc++){
+        if(grid[rr][cc].mine) { grid[rr][cc].revealed = true; updateTile(rr,cc); }
+      }
     }
-    const hitEl = elFor(r,c); hitEl
+    const hitEl = boardEl.children[r*cols + c];
+    hitEl.classList.add('mine-hit');
+    playSound(sBoom);
+    showExplosion(hitEl);
+    // show modal
+    modalTitle.textContent = 'You Hit a Mine 💥';
+    modalText.innerHTML = `Time: <strong>${timeSec}</strong>s`;
+    modalTime.textContent = timeSec;
+    overlay.style.display = 'flex';
+    modalRestart.onclick = ()=>{ overlay.style.display='none'; newGame(); };
+    modalClose.onclick = ()=>{ overlay.style.display='none'; };
+  }
+
+  function showExplosion(el){
+    const ex = document.createElement('div'); ex.className = 'explosion';
+    for(let i=0;i<18;i++){
+      const p = document.createElement('div'); p.className = 'particle';
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 30 + Math.random()*110;
+      const tx = Math.round(Math.cos(angle)*dist) + 'px';
+      const ty = Math.round(Math.sin(angle)*dist) + 'px';
+      p.style.setProperty('--tx', tx); p.style.setProperty('--ty', ty);
+      p.style.left = '50%'; p.style.top = '50%';
+      ex.appendChild(p);
+    }
+    el.appendChild(ex);
+    setTimeout(()=>{ ex.remove(); }, 900);
+  }
+
+  function win(){
+    gameOver = true;
+    clearTimer();
+    // mark flags on mines and reveal everything
+    for(let r=0;r<rows;r++){
+      for(let c=0;c<cols;c++){
+        if(grid[r][c].mine) grid[r][c].flagged = true;
+        grid[r][c].revealed = true;
+        updateTile(r,c);
+      }
+    }
+    playSound(sWin);
+    // save best
+    const key = BEST_KEY(currentDiff);
+    const prev = parseInt(localStorage.getItem(key) || '0',10) || 0;
+    if(prev === 0 || timeSec < prev) localStorage.setItem(key, String(timeSec));
+    updateBest();
+    // show modal
+    modalTitle.textContent = 'You Win 🎉';
+    modalText.innerHTML = `Time: <strong>${timeSec}</strong>s`;
+    modalTime.textContent = timeSec;
+    overlay.style.display = 'flex';
+    modalRestart.onclick = ()=>{ overlay.style.display='none'; newGame(); };
+    modalClose.onclick = ()=>{ overlay.style.display='none'; };
+  }
+
+  function updateBest(){ const v = localStorage.getItem(BEST_KEY(currentDiff)); bestEl.textContent = v ? `Best: ${v}s` : 'Best: —'; }
+
+  function updateFlagUI(){ flagToggle.textContent = `Flag Mode: ${flagMode ? 'On' : 'Off'}`; flagToggle.classList.toggle('primary', flagMode); }
+
+  function playSound(audioEl){
+    if(!audioEl) return;
+    try{ audioEl.currentTime = 0; audioEl.play(); } catch(e){ /* ignore autoplay issues */ }
+  }
+
+  function toggleTheme(){
+    const root = document.documentElement;
+    const body = document.body;
+    if(body.getAttribute('data-theme') === 'light'){
+      body.setAttribute('data-theme','dark'); themeToggle.textContent = 'Light Mode';
+    } else {
+      body.setAttribute('data-theme','light'); themeToggle.textContent = 'Dark Mode';
+    }
+  }
+
+  // initialize
+  updateBest();
+  newGame();
+
+  // responsive: recalc grid on resize
+  let resizeTimer = null;
+  window.addEventListener('resize', ()=>{ clearTimeout(resizeTimer); resizeTimer = setTimeout(()=>{ renderGrid(); }, 120); });
+
+  // small helpers to re-render size without resetting grid content
+  function renderGrid(){
+    // keep current grid state but re-create elements with new sizes
+    const oldState = grid.map(row => row.map(cell => ({...cell})));
+    const prevRows = rows, prevCols = cols;
+    // re-render uses grid but we want to preserve same rows/cols
+    // temporarily set grid to oldState, then rebuild DOM accordingly
+    grid = oldState;
+    const padding = 40;
+    const gapTotal = (cols - 1) * 6;
+    const maxWidth = Math.min(window.innerWidth, 940) - padding;
+    let cellSize = Math.floor((maxWidth - gapTotal - 16) / cols);
+    cellSize = Math.max(20, Math.min(56, cellSize));
+    boardEl.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
+    boardEl.style.width = 'auto';
+    // rebuild DOM tiles preserving inner state
+    boardEl.innerHTML = '';
+    for(let r=0;r<rows;r++){
+      for(let c=0;c<cols;c++){
+        const el = document.createElement('div');
+        el.className = 'tile';
+        el.dataset.r = r; el.dataset.c = c;
+        el.innerHTML = `<div class="inner"></div>`;
+        el.addEventListener('click', onTileClick);
+        el.addEventListener('contextmenu', (ev)=>{ ev.preventDefault(); toggleFlag(r,c); });
+        el.addEventListener('touchstart', (ev)=>{ ev.preventDefault(); longPressTimer = setTimeout(()=>{ toggleFlag(r,c); longPressTimer = null; }, LONG_PRESS_MS); }, {passive:false});
+        el.addEventListener('touchend', ()=>{ if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer = null; }});
+        boardEl.appendChild(el);
+      }
+    }
+    // recreate tiles content based on grid state
+    for(let r=0;r<rows;r++){
+      for(let c=0;c<cols;c++){
+        updateTile(r,c);
+      }
+    }
+  }
+
+})();
+</script>
+</body>
+</html>
